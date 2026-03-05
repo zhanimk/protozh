@@ -1,5 +1,5 @@
 import Link from 'next/link';
-import TournamentsView from './TournamentsView';
+import TournamentsView from '../../../components/admin/TournamentsView';
 
 export default function TournamentsPage() {
   return (

@@ -1,4 +1,4 @@
-import CreateTournamentForm from './CreateTournamentForm';
+import CreateTournamentForm from '@/components/admin/CreateTournamentForm';
 
 export default function CreateTournamentPage() {
   return (

@@ -76,7 +76,7 @@ export default function AdminLayout({ children }) {
           </div>
         </div>
         <nav className="flex-1 p-4 space-y-2">
-          <SidebarItem href="/admin/dashboard" icon="🏠">
+          <SidebarItem href="/admin" icon="🏠">
             Басты бет
           </SidebarItem>
           <SidebarItem href="/admin/tournaments" icon="🏆">

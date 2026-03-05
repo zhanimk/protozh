@@ -3,117 +3,17 @@
 import { useEffect, useState } from 'react';
 import { useParams } from 'next/navigation';
 import { doc, getDoc, updateDoc, collection, getDocs, deleteDoc } from 'firebase/firestore';
-import { db } from '../../../../lib/firebase';
-import { generateDocument } from '../../../../lib/generatePdf';
+import { db } from '@/lib/firebase';
+import { generateDocument } from '@/lib/generatePdf';
+import { groupAthletesByDivision } from '@/lib/utils';
 
-import MainTab from './components/MainTab';
-import RegulationsTab from './components/RegulationsTab';
-import AthletesTab from './components/AthletesTab';
-import GridsTab from './components/GridsTab';
-
-import ConfirmModal from '../../../../components/ConfirmModal';
-import EditAthleteModal from '../../athletes/EditAthleteModal';
-
-// These two components are defined here because they are used by MainTab but their state is managed here.
-export const FormSection = ({ title, children, className = '' }) => (
-  <div className={`bg-navy-800 rounded-xl p-6 border border-navy-600 ${className}`}>
-    {title && <h3 className="font-semibold text-gold mb-4">{title}</h3>}
-    <div className="space-y-4">{children}</div>
-  </div>
-);
-
-export const DivisionEditCard = ({ division, onUpdate, onRemove }) => {
-  const [newWeights, setNewWeights] = useState('');
-  const handleAddWeights = () => {
-    const weightsToAdd = newWeights.split(/\s+|,/g).map(w => w.trim()).filter(w => w.length > 0 && !division.weights.includes(w));
-    if (weightsToAdd.length > 0) {
-      const sortedWeights = [...division.weights, ...weightsToAdd].sort((a, b) => {
-          const numA = parseFloat(a.replace(/\+|-/g, ''));
-          const numB = parseFloat(b.replace(/\+|-/g, ''));
-          return numA - numB;
-      });
-      onUpdate({ ...division, weights: sortedWeights });
-      setNewWeights('');
-    }
-  };
-  const handleRemoveWeight = (weightToRemove) => {
-    onUpdate({ ...division, weights: division.weights.filter(w => w !== weightToRemove) });
-  };
-  const handleInputChange = (e) => {
-    onUpdate({ ...division, [e.target.name]: e.target.value });
-  };
-  return (
-    <div className="bg-navy-700/50 p-4 rounded-lg border border-navy-600 space-y-3">
-        <div className="flex justify-between items-start">
-            <div className="flex-1 grid grid-cols-1 sm:grid-cols-3 gap-3">
-                <div>
-                    <label className="text-xs text-gray-400">Жынысы</label>
-                    <select name="gender" value={division.gender} onChange={handleInputChange} className="w-full mt-1 bg-navy-900 p-2 rounded-md border border-navy-500 focus:border-gold focus:outline-none">
-                        <option value="Ерлер">Ерлер</option>
-                        <option value="Әйелдер">Әйелдер</option>
-                    </select>
-                </div>
-                <div>
-                    <label className="text-xs text-gray-400">Жас тобы</label>
-                    <input name="ageGroup" value={division.ageGroup} onChange={handleInputChange} placeholder="Мысалы: 2010-2011 ж.т." className="w-full mt-1 bg-navy-900 p-2 rounded-md border border-navy-500 focus:border-gold focus:outline-none" />
-                </div>
-                <div>
-                    <label className="text-xs text-gray-400">Белдесу (мин)</label>
-                    <input name="duration" type="number" value={division.duration} onChange={handleInputChange} placeholder="3" className="w-full mt-1 bg-navy-900 p-2 rounded-md border border-navy-500 focus:border-gold focus:outline-none"/>
-                </div>
-            </div>
-            <button type="button" onClick={onRemove} className="ml-3 text-red-500 hover:text-red-400 font-bold text-2xl leading-none">&times;</button>
-        </div>
-        <div>
-            <label className="text-xs text-gray-400">Салмақ дәрежелері</label>
-            <div className="flex flex-wrap gap-2 mt-1">
-            {division.weights.map(w => (
-                <span key={w} className="bg-navy-900 px-2 py-1 rounded-md text-sm flex items-center gap-2">
-                {w}
-                <button type="button" onClick={() => handleRemoveWeight(w)} className="text-gray-500 hover:text-white">&times;</button>
-                </span>
-            ))}
-            </div>
-            <div className="flex gap-2 mt-2">
-                <input value={newWeights} onChange={(e) => setNewWeights(e.target.value)} placeholder="-55 -60 +66 (бос орын арқылы)" className="flex-1 bg-navy-900 p-2 rounded-md border border-navy-500 focus:border-gold focus:outline-none"/>
-                <button type="button" onClick={handleAddWeights} className="px-4 bg-gold text-navy-900 font-bold rounded-md">+ Қосу</button>
-            </div>
-        </div>
-    </div>
-  );
-};
-
-const TabButton = ({ active, onClick, children }) => (
-    <button 
-        onClick={onClick} 
-        className={`px-4 py-2 font-semibold transition-colors duration-200 ${active ? 'bg-gold text-navy-900' : 'text-gray-300 hover:bg-navy-700'} rounded-md`}>
-        {children}
-    </button>
-);
-
-const groupAthletesByDivision = (athletes, divisions) => {
-    const grouped = {};
-    divisions.forEach(div => {
-        const divKey = `${div.gender} / ${div.ageGroup}`;
-        if (!grouped[divKey]) grouped[divKey] = {};
-        div.weights.forEach(weight => {
-            if (!grouped[divKey][weight]) grouped[divKey][weight] = [];
-        });
-    });
-    athletes.forEach(athlete => {
-        const divKey = `${athlete.gender} / ${athlete.ageGroup}`;
-        if (grouped[divKey] && grouped[divKey][athlete.weight] !== undefined) {
-             grouped[divKey][athlete.weight].push(athlete);
-        }
-    });
-    for (const divKey in grouped) {
-        for (const weight in grouped[divKey]) {
-            grouped[divKey][weight].sort((a, b) => a.name.localeCompare(b.name));
-        }
-    }
-    return grouped;
-};
-
+import MainTab from '@/components/admin/MainTab';
+import AthletesTab from '@/components/admin/AthletesTab';
+import GridsTab from '@/components/admin/GridsTab';
+import ConfirmModal from '@/components/common/ConfirmModal';
+import EditAthleteModal from '@/components/admin/EditAthleteModal';
+import TabButton from '@/components/common/TabButton';
+import SaveButton from '@/components/common/SaveButton';
 
 export default function TournamentEditPage() {
   const { id } = useParams();
@@ -146,7 +46,12 @@ export default function TournamentEditPage() {
         }
         
         const data = { id: docSnap.id, ...docSnap.data() };
-        data.divisions = (data.divisions || []).map((div, index) => ({ ...div, clientId: `div-${index}` }));
+        // Ensure divisions have a client-side ID for UI mapping
+        data.divisions = (data.divisions || []).map((div, index) => ({
+             ...div,
+             weights: Array.isArray(div.weights) ? div.weights : (div.weights || '').split(',').map(w=>w.trim()).filter(Boolean),
+             clientId: `div-${index}-${Date.now()}` 
+        }));
         if(isMounted) setTournamentData(data);
 
         const athletesRef = collection(db, 'tournaments', id, 'athletes');
@@ -182,16 +87,19 @@ export default function TournamentEditPage() {
   };
 
   const handleTournamentInputChange = (e) => {
-    setTournamentData({ ...tournamentData, [e.target.id]: e.target.value });
+    setTournamentData({ ...tournamentData, [e.target.name]: e.target.value });
     setHasUnsavedChanges(true);
   };
   const addDivision = () => {
-    const newDivision = { clientId: `div-${Date.now()}`, gender: 'Ерлер', ageGroup: '', duration: 3, weights: [] };
+    const newDivision = { clientId: `div-${Date.now()}`, gender: 'Ерлер', ageGroup: '', duration: 5, weights: [] };
     setTournamentData({ ...tournamentData, divisions: [...tournamentData.divisions, newDivision] });
     setHasUnsavedChanges(true);
   };
   const updateDivision = (clientId, updatedData) => {
-    setTournamentData({ ...tournamentData, divisions: tournamentData.divisions.map(d => d.clientId === clientId ? updatedData : d) });
+    setTournamentData({ 
+        ...tournamentData, 
+        divisions: tournamentData.divisions.map(d => d.clientId === clientId ? { ...d, ...updatedData } : d) 
+    });
     setHasUnsavedChanges(true);
   };
   const removeDivision = (clientId) => {
@@ -202,10 +110,16 @@ export default function TournamentEditPage() {
     setIsProcessing(true);
     try {
       const { id, ...dataToSave } = tournamentData;
-      // Clean data before saving
-      dataToSave.divisions = dataToSave.divisions.map(({ clientId, ...div }) => div);
+      // Clean data for Firestore
+      dataToSave.divisions = dataToSave.divisions.map(({ clientId, ...div }) => {
+          let weightsArray = div.weights;
+          if (typeof weightsArray === 'string') {
+              weightsArray = weightsArray.split(',').map(w => w.trim()).filter(Boolean);
+          }
+          return { ...div, weights: weightsArray };
+      });
+      
       if (dataToSave.grids) {
-        // Ensure grids are serializable
         dataToSave.grids = JSON.parse(JSON.stringify(dataToSave.grids));
       }
 
@@ -265,9 +179,7 @@ export default function TournamentEditPage() {
                 let athletesInCategory = [...groupedAthletes[divisionKey][weightKey]]; // Make a copy
                 const matches = [];
                 
-                // Handle bye if odd number of athletes
                 if (athletesInCategory.length % 2 !== 0) {
-                    // For simplicity, the last athlete gets a bye. Could be randomized.
                     const byeAthlete = athletesInCategory.pop();
                     matches.push({
                         round: 1,
@@ -277,7 +189,6 @@ export default function TournamentEditPage() {
                     });
                 }
 
-                // Create pairs for the first round
                 for (let i = 0; i < athletesInCategory.length; i += 2) {
                     matches.push({
                         round: 1,
@@ -387,22 +298,6 @@ export default function TournamentEditPage() {
   if (error) return <div className="p-6 text-center text-red-500">{error}</div>;
   if (!tournamentData) return null;
 
-  const SaveButton = () => {
-      const baseClasses = "px-5 py-2 text-white font-semibold rounded-lg disabled:opacity-50 transition-all flex items-center gap-2";
-      if (hasUnsavedChanges) {
-          return (
-              <button onClick={handleSaveChanges} disabled={isProcessing} className={`${baseClasses} bg-yellow-500 hover:bg-yellow-400 animate-pulse`}>
-                <span className="text-lg">💾</span> {isProcessing ? 'Сақталуда...' : 'Сақтау керек'}
-              </button>
-          );
-      }
-      return (
-          <button disabled className={`${baseClasses} bg-green-600`}>
-            <span className="text-lg">✅</span> Сақталды
-          </button>
-      );
-  }
-
   return (
     <>
       <div className="p-6">
@@ -418,14 +313,13 @@ export default function TournamentEditPage() {
                       </div>
                   )}
                   <button type="button" onClick={handleGeneratePdf} className="px-4 py-2 bg-blue-600 text-white font-semibold rounded-lg hover:bg-blue-500 flex items-center gap-2"><span className="text-lg">📄</span> PDF</button>
-                  <SaveButton />
+                  <SaveButton hasUnsavedChanges={hasUnsavedChanges} isProcessing={isProcessing} handleSaveChanges={handleSaveChanges} />
               </div>
           </div>
 
         <div className="mb-6 border-b border-navy-600">
             <div className="flex items-center gap-2">
                 <TabButton active={activeTab === 'main'} onClick={() => setActiveTab('main')}>Негізгі</TabButton>
-                <TabButton active={activeTab === 'regulations'} onClick={() => setActiveTab('regulations')}>Положение</TabButton>
                 <TabButton active={activeTab === 'athletes'} onClick={() => setActiveTab('athletes')}>Спортшылар</TabButton>
                 <TabButton active={activeTab === 'grids'} onClick={() => setActiveTab('grids')}>Сеткалар</TabButton>
                 <TabButton active={activeTab === 'live'} onClick={() => setActiveTab('live')}>Табло</TabButton>
@@ -440,12 +334,6 @@ export default function TournamentEditPage() {
                     addDivision={addDivision}
                     updateDivision={updateDivision}
                     removeDivision={removeDivision}
-                />
-            }
-            {activeTab === 'regulations' && 
-                <RegulationsTab 
-                    tournamentData={tournamentData} 
-                    handleTournamentInputChange={handleTournamentInputChange} 
                 />
             }
             {activeTab === 'athletes' && 
